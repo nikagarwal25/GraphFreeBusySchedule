@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Newtonsoft.Json;
 using POCGraphFreeBusyMeetings.Enums;
 using POCGraphFreeBusyMeetings.Models;
 using POCGraphFreeBusyMeetings.MsGraph.Microsoft.D365.HCM.Common.MSGraph;
@@ -23,7 +24,7 @@ namespace POCGraphFreeBusyMeetings
 
         public static void Main(string[] args)
         {
-            RunPOC();
+            RunPOC().Wait();
         }
 
         public static async Task RunPOC()
@@ -67,7 +68,7 @@ namespace POCGraphFreeBusyMeetings
   'utcEnd': '2019-08-29T18:30:00.000Z',
   'utcStart': '2019-08-28T18:30:00.000Z'
 }";
-            var freeBusyRequest = JsonConvert.DeserializeObject < FreeBusyRequest >(freeBusyRequestString);
+            var freeBusyRequest = JsonConvert.DeserializeObject<FreeBusyRequest>(freeBusyRequestString);
             foreach (var userGroup in freeBusyRequest.UserGroups)
             {
                 if (userGroup?.Users != null)
@@ -97,7 +98,7 @@ namespace POCGraphFreeBusyMeetings
                 var schedules = findFreeBusyRequest.Schedules;
                 foreach (var scheduleBatch in Chunk(schedules, 20))
                 {
-                    tasks.Add(Task.Run(async () => 
+                    tasks.Add(Task.Run(async () =>
                     {
                         for (int i = 1; i <= 5; i++)
                         {
@@ -155,10 +156,11 @@ namespace POCGraphFreeBusyMeetings
                 userAccessToken = userAccessToken.Remove(0, 7);
             }
 
-            var resourceToken = "Bearer zz";
-            //await graphProvider.GetResourceAccessTokenFromUserToken(userAccessToken, tokenCachingOptions);
+            // var resourceToken = await graphProvider.GetResourceAccessTokenFromUserToken(userAccessToken, tokenCachingOptions);
 
-            return new AuthenticationHeaderValue("Bearer", resourceToken);
+            return await GetAuthenticationHeaderValueAsync();
+
+            // return new AuthenticationHeaderValue("Bearer", resourceToken);
         }
 
         private static FindFreeBusyScheduleRequest GenerateFreeBusyScheduleRequest(FreeBusyRequest freeBusyRequest, List<GraphPerson> interviewers)
@@ -184,7 +186,24 @@ namespace POCGraphFreeBusyMeetings
                 }
             }
         }
+        public static async Task<AuthenticationHeaderValue> GetAuthenticationHeaderValueAsync()
+        {
+            try
+            {
+                var authContext = new AuthenticationContext("https://login.windows.net/72f988bf-86f1-41af-91ab-2d7cd011db47");
 
-        
+                string AadClientSecret = @"AAD Client Secret";
+
+                var authResult = await authContext
+                    .AcquireTokenAsync("https://graph.microsoft.com",
+                        new ClientCredential("APP ID", AadClientSecret));
+                return new AuthenticationHeaderValue("Bearer", authResult.AccessToken);
+            }
+            catch(Exception ex)
+            {
+
+                return null;
+            }
+        }
     }
 }
