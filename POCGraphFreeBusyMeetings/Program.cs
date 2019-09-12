@@ -1,13 +1,17 @@
-﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
+﻿using Microsoft.Graph;
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Newtonsoft.Json;
 using POCGraphFreeBusyMeetings.Enums;
 using POCGraphFreeBusyMeetings.Models;
 using POCGraphFreeBusyMeetings.MsGraph.Microsoft.D365.HCM.Common.MSGraph;
+using POCGraphFreeBusyMeetings.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -39,27 +43,14 @@ namespace POCGraphFreeBusyMeetings
             string freeBusyRequestString = @"{
   'userGroups': [
     {
-      'freeBusyTimeId': 'zz7b98d0-b43b-9fcc-15cb-517e148f8322',
+      'freeBusyTimeId': '457b98d0-b43b-9fcc-15cb-517e148f8322',
       'users': [
         {
-          'name': 'Nikita Agarwal',
-          'id': 'zzdddac2-0069-4bf5-b638-f0753ca153d1',
-          'email': 'zz@zz.com',
-          'givenName': 'Nikita',
-          'surname': 'Agarwal',
-          'image': null
-        }
-      ]
-    },
-    {
-      'freeBusyTimeId': 'a25854a4-4f7c-d4c3-658c-2146f22a817a',
-      'users': [
-        {
-          'name': 'Gopal Pandey',
-          'id': 'zz3d473a-05b5-4a92-98bc-0acee9dd9444',
-          'email': 'zz@zz.com',
-          'givenName': 'Gopal',
-          'surname': 'Pandey',
+          'name': 'GTA Test',
+          'id': '9827d274-bb63-40e9-aba2-fafebd8c3e8a',
+          'email': 'gtatest@gtasch.onmicrosoft.com',
+          'givenName': null,
+          'surname': null,
           'image': null
         }
       ]
@@ -158,9 +149,9 @@ namespace POCGraphFreeBusyMeetings
 
             // var resourceToken = await graphProvider.GetResourceAccessTokenFromUserToken(userAccessToken, tokenCachingOptions);
 
-            return await GetAuthenticationHeaderValueAsync();
+            //  return await GetAuthenticationHeaderValueAsync();
 
-            // return new AuthenticationHeaderValue("Bearer", resourceToken);
+            return new AuthenticationHeaderValue("Bearer", await GetGraphToken());
         }
 
         private static FindFreeBusyScheduleRequest GenerateFreeBusyScheduleRequest(FreeBusyRequest freeBusyRequest, List<GraphPerson> interviewers)
@@ -190,20 +181,43 @@ namespace POCGraphFreeBusyMeetings
         {
             try
             {
-                var authContext = new AuthenticationContext("https://login.windows.net/72f988bf-86f1-41af-91ab-2d7cd011db47");
+                var authContext = new AuthenticationContext("https://login.windows.net/12db0337-13c3-4c81-9ae8-2de8bb21c52c");
 
-                string AadClientSecret = @"AAD Client Secret";
+                string AadClientSecret = @"ZZ-febKE-+2bHezT.-2wn1Z2L[V3ix";
 
                 var authResult = await authContext
                     .AcquireTokenAsync("https://graph.microsoft.com",
-                        new ClientCredential("APP ID", AadClientSecret));
+                        new ClientCredential("ZZ16709-2860-43fa-b609-af133c58fe0f", AadClientSecret));
                 return new AuthenticationHeaderValue("Bearer", authResult.AccessToken);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
 
                 return null;
             }
         }
+
+        public async static Task<string> GetGraphToken()
+        {
+            // var principal = ServiceContext.Principal.TryGetCurrent<HCMApplicationPrincipal>();
+            string userAccessToken = "GetUserToken";
+
+            //string userAccessToken = principal.EncryptedUserToken;
+            UserAssertion userAssertion = new UserAssertion(userAccessToken, "urn:ietf:params:oauth:grant-type:jwt-bearer");
+            // UserAssertion userAssertion = new UserAssertion(userAccessToken);
+
+            string aadInstance = "https://login.microsoftonline.com/{0}";
+            string tenant = "ZZ697574-167c-4ff2-bda8-989f9afc867f";
+            string authority = string.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
+            AuthenticationContext authContext = new AuthenticationContext(authority);
+            var clientValue = @"ZZZZZDM8/*a1guLn_6ccZJaiZ4pyLuHr++y";
+
+            ClientCredential clientCredential = new ClientCredential("ZZeb1b17-c7f1-4433-b119-8cf3c67451ef", clientValue);
+            
+            var result = await authContext.AcquireTokenAsync("https://graph.microsoft.com", clientCredential, userAssertion);
+            return result.AccessToken;
+        }
+
+
     }
 }
